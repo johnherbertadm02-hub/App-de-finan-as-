@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1559a8">
+<title>Meu Bolso — Controle financeiro</title>
+<style>
+:root{--blue:#1559a8;--blue2:#2476d2;--pale:#eaf2ff;--ink:#17243a;--muted:#68778d;--bg:#f4f7fb;--white:#fff;--green:#16834b;--red:#c53c48;--line:#e5ebf3;--shadow:0 8px 28px #17345c12}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:11px 15px;font-weight:650;background:var(--blue);color:white}button.secondary{background:var(--pale);color:var(--blue)}button.ghost{background:transparent;color:var(--muted);padding:7px}
+header{background:linear-gradient(120deg,#104b91,#2476d2);color:#fff;padding:20px max(18px,calc((100% - 1080px)/2));}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-size:23px;font-weight:800;letter-spacing:-.5px}.brand small{display:block;font-size:12px;font-weight:500;opacity:.8;letter-spacing:0}
+main{max-width:1080px;margin:22px auto;padding:0 16px 90px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}.tabs{display:flex;gap:6px;overflow:auto;padding-bottom:4px}.tabs button{white-space:nowrap;background:#fff;color:var(--muted);border:1px solid var(--line)}.tabs button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:var(--shadow)}.metric span{color:var(--muted);font-size:13px}.metric strong{display:block;font-size:clamp(20px,3vw,28px);margin-top:8px;letter-spacing:-.5px}.positive{color:var(--green)}.negative{color:var(--red)}
+h2{font-size:19px;margin:0 0 14px}h3{font-size:16px;margin:0 0 12px}.section{margin-top:16px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.muted{color:var(--muted);font-size:13px}.list{display:grid;gap:0}.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.item-title{font-weight:650}.pill{font-size:11px;background:var(--pale);color:var(--blue);padding:5px 8px;border-radius:30px}
+form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}label{display:grid;gap:6px;color:var(--muted);font-size:13px}input,select{width:100%;border:1px solid #d9e1ed;border-radius:11px;padding:11px;background:#fff;color:var(--ink);min-width:0}form .wide{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.bar{height:10px;border-radius:30px;background:#e9eef6;overflow:hidden}.bar>i{display:block;height:100%;background:var(--blue2);border-radius:30px}.empty{padding:24px;text-align:center;color:var(--muted)}
+.premium{background:linear-gradient(135deg,#eaf2ff,#fff);border:1px solid #cbdcf5}.premium h2{color:var(--blue)}.features{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.feature{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 0}
+.notice{background:#fff8e8;border:1px solid #f1dfb5;padding:12px;border-radius:12px;color:#77591c;font-size:13px;margin-top:14px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.metric strong{font-size:24px}main{margin-top:14px}.toolbar{align-items:stretch}.tabs{width:100%}form{grid-template-columns:1fr}.form .wide{grid-column:auto}.top{align-items:flex-start}.features{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="top"><div class="brand">◈ Meu Bolso<small>Suas finanças sob controle</small></div><div id="planBadge" class="pill" style="background:#ffffff24;color:white">PLANO GRATUITO</div></div></header>
+<main>
+<div class="toolbar"><div class="tabs" id="tabs">
+<button class="active" data-page="inicio">Visão geral</button><button data-page="lancamentos">Lançamentos</button><button data-page="orcamento">Orçamento</button><button data-page="metas">Metas</button><button data-page="premium">Premium</button>
+</div><div class="actions"><button class="secondary" id="exportBtn">Exportar CSV</button><button id="addBtn">+ Lançamento</button></div></div>
+<div id="app"></div>
+<footer>MEU BOLSO · MVP demonstrativo · Seus dados ficam armazenados neste dispositivo neste protótipo.</footer>
+</main>
+<script>
+const KEY='meu_bolso_v1';
+const seed={plan:'free',currency:'BRL',budget:1500,goal:5000,saved:1200,entries:[
+{id:1,name:'Salário',category:'Renda',type:'income',amount:4200,date:new Date().toISOString().slice(0,10)},
+{id:2,name:'Supermercado',category:'Alimentação',type:'expense',amount:420,date:new Date().toISOString().slice(0,10)},
+{id:3,name:'Combustível',category:'Transporte',type:'expense',amount:180,date:new Date().toISOString().slice(0,10)}]};
+let state=load();
+function load(){try{return {...seed,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return structuredClone(seed)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function money(n){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:state.currency}).format(n||0)}
+function totals(){let inc=state.entries.filter(x=>x.type==='income').reduce((a,x)=>a+x.amount,0),out=state.entries.filter(x=>x.type==='expense').reduce((a,x)=>a+x.amount,0);return{inc,out,balance:inc-out}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+let page='inicio';
+document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
+document.getElementById('addBtn').onclick=()=>{page='lancamentos';render();document.getElementById('name')?.focus()};
+document.getElementById('exportBtn').onclick=exportCSV;
+function render(){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));document.getElementById('planBadge').textContent=state.plan==='premium'?'PLANO PREMIUM':'PLANO GRATUITO';let t=totals(),root=document.getElementById('app');
+if(page==='inicio')root.innerHTML=`<div class="grid"><div class="card metric"><span>Saldo disponível</span><strong>${money(t.balance)}</strong><small class="muted">Receitas menos despesas cadastradas</small></div><div class="card metric"><span>Receitas</span><strong class="positive">${money(t.inc)}</strong></div><div class="card metric"><span>Despesas</span><strong class="negative">${money(t.out)}</strong></div></div><div class="card section"><div class="row"><h2>Movimentações recentes</h2><button class="secondary" onclick="go('lancamentos')">Ver todas</button></div>${entriesHTML(state.entries.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5))}</div><div class="card section"><div class="row"><h3>Resumo do orçamento</h3><span class="muted">${money(t.out)} de ${money(+state.budget)}</span></div><div class="bar"><i style="width:${Math.min(100,t.out/Math.max(1,+state.budget)*100)}%"></i></div><p class="muted">${t.out>+state.budget?'Você ultrapassou o limite definido.':`Restam ${money(Math.max(0,+state.budget-t.out))} do orçamento.`}</p></div>`;
+if(page==='lancamentos')root.innerHTML=`<div class="card"><h2>Novo lançamento</h2><form id="entryForm"><label>Tipo<select id="type"><option value="expense">Despesa</option><option value="income">Receita</option></select></label><label>Categoria<select id="category">${['Alimentação','Moradia','Transporte','Saúde','Lazer','Educação','Renda','Contas','Outros'].map(x=>`<option>${x}</option>`).join('')}</select></label><label>Descrição<input id="name" required maxlength="60" placeholder="Ex.: Conta de energia"></label><label>Valor (${state.currency})<input id="amount" type="number" min=".01" step=".01" required placeholder="0,00"></label><label>Data<input id="date" type="date" value="${new Date().toISOString().slice(0,10)}" required></label><div class="wide actions"><button>Salvar lançamento</button></div></form></div><div class="card section"><h2>Todos os lançamentos</h2>${entriesHTML(state.entries.slice().sort((a,b)=>b.date.localeCompare(a.date)))}</div>`;
+if(page==='orcamento')root.innerHTML=`<div class="card"><h2>Orçamento mensal</h2><label>Limite de despesas (${state.currency})<input id="budget" type="number" min="0" step=".01" value="${state.budget}"></label><button style="margin-top:12px" onclick="saveBudget()">Salvar orçamento</button><div class="section"><div class="row"><b>Despesas registradas</b><b>${money(t.out)} / ${money(+state.budget)}</b></div><div class="bar section"><i style="width:${Math.min(100,t.out/Math.max(1,+state.budget)*100)}%"></i></div><p class="muted">${t.out>+state.budget?'Limite ultrapassado.':'Acompanhe seus gastos ao longo do mês.'}</p></div></div><div class="card section"><h3>Moeda de exibição</h3><label>Moeda<select id="currency"><option value="BRL" ${state.currency==='BRL'?'selected':''}>Real brasileiro (BRL)</option><option value="USD" ${state.currency==='USD'?'selected':''}>Dólar americano (USD)</option><option value="EUR" ${state.currency==='EUR'?'selected':''}>Euro (EUR)</option></select></label><button class="secondary" style="margin-top:12px" onclick="saveCurrency()">Alterar moeda</button><p class="muted">A troca muda apenas a apresentação. Não converte valores por câmbio.</p></div>`;
+if(page==='metas')root.innerHTML=`<div class="card"><h2>Meta de economia</h2><label>Valor da meta (${state.currency})<input id="goal" type="number" min="1" step=".01" value="${state.goal}"></label><label style="margin-top:12px">Valor já economizado (${state.currency})<input id="saved" type="number" min="0" step=".01" value="${state.saved}"></label><button style="margin-top:12px" onclick="saveGoal()">Salvar meta</button><div class="section"><div class="row"><b>${money(state.saved)}</b><b>${Math.min(100,state.saved/Math.max(1,state.goal)*100).toFixed(1)}%</b></div><div class="bar section"><i style="width:${Math.min(100,state.saved/Math.max(1,state.goal)*100)}%"></i></div><p class="muted">Faltam ${money(Math.max(0,state.goal-state.saved))} para alcançar sua meta.</p></div></div>`;
+if(page==='premium')root.innerHTML=`<div class="card premium"><span class="pill">MEU BOLSO PREMIUM</span><h2 style="margin-top:12px">Mais clareza para suas decisões.</h2><p>Desbloqueie ferramentas avançadas para planejar melhor seu dinheiro.</p><div class="grid"><div><h2>R$ 14,90<small class="muted"> / mês</small></h2><p class="muted">Assinatura mensal sugerida</p></div><div><h2>R$ 149,90<small class="muted"> / ano</small></h2><p class="muted">Plano anual sugerido</p></div></div><div class="features section">${['Relatórios avançados','Cartões e parcelas','Metas ilimitadas','Orçamentos por categoria','Exportação PDF e Excel','Histórico ampliado'].map(x=>`<div class="feature">✓ ${x}</div>`).join('')}</div><div class="notice">A assinatura e o pagamento ainda não estão conectados. Este botão apenas demonstra a mudança de plano.</div><button style="margin-top:14px" onclick="togglePlan()">${state.plan==='premium'?'Voltar ao plano gratuito':'Experimentar demonstração Premium'}</button></div>`;
+let form=document.getElementById('entryForm');if(form)form.onsubmit=addEntry;
+}
+function entriesHTML(list){if(!list.length)return'<div class="empty">Nenhum lançamento cadastrado.</div>';return'<div class="list">'+list.map(e=>`<div class="item"><div><div class="item-title">${esc(e.name)}</div><div class="muted">${esc(e.category)} · ${e.date}</div></div><div class="row"><b class="${e.type==='income'?'positive':'negative'}">${e.type==='income'?'+':'−'}${money(e.amount)}</b><button class="ghost" title="Excluir" onclick="removeEntry(${e.id})">✕</button></div></div>`).join('')+'</div>'}
+function addEntry(ev){ev.preventDefault();let amount=Number(document.getElementById('amount').value);if(!(amount>0))return;state.entries.push({id:Date.now(),name:document.getElementById('name').value.trim(),category:document.getElementById('category').value,type:document.getElementById('type').value,amount,date:document.getElementById('date').value});save();render()}
+function removeEntry(id){if(confirm('Excluir este lançamento?')){state.entries=state.entries.filter(x=>x.id!==id);save();render()}}
+function saveBudget(){state.budget=Math.max(0,Number(document.getElementById('budget').value)||0);save();render()}
+function saveCurrency(){state.currency=document.getElementById('currency').value;save();render()}
+function saveGoal(){state.goal=Math.max(1,Number(document.getElementById('goal').value)||1);state.saved=Math.max(0,Number(document.getElementById('saved').value)||0);save();render()}
+function togglePlan(){state.plan=state.plan==='premium'?'free':'premium';save();render()}
+function go(p){page=p;render()}
+function exportCSV(){let rows=[['Descrição','Categoria','Tipo','Valor','Data'],...state.entries.map(e=>[e.name,e.category,e.type,e.amount,e.date])];let csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='meu-bolso-lancamentos.csv';a.click();URL.revokeObjectURL(a.href)}
+render();
+</script>
+</body></html>
